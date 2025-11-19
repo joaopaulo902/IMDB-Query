@@ -2,10 +2,12 @@
 #include <stdlib.h>
 #include <curl/curl.h>
 #include "util.h"
+#include <cjson/cJSON.h>
 
 #define IMDB_QUERY_URL "https://api.imdbapi.dev/titles"
 
-int main(void) {
+int main (void) {
+
     CURL* curl = curl_easy_init();
     CURLcode res = 0;
 
@@ -44,5 +46,6 @@ int main(void) {
     fclose(fp);
     curl_easy_cleanup(curl);
     free(chunk.memory);
+
     return 0;
 }
