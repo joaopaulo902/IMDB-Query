@@ -1,6 +1,9 @@
-cmake_minimum_required(VERSION 4.0)
-project(IMDB-Query C)
+cmake_minimum_required(VERSION 3.31.6)
+project(IMDB_Query C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(IMDB-Query main.c)
+add_executable(IMDB_Query main.c
+        entities.c
+        systemManager.c
+)
