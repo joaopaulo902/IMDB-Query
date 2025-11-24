@@ -11,6 +11,7 @@
 #include "IQuery.h"
 #include "util.h"
 
+#define IMDB_QUERY_URL "https://api.imdbapi.dev/titles"
 
 typedef struct {
     int width;
@@ -66,7 +67,7 @@ typedef struct {
  */
 typedef struct {
     Title *titles;
-    long int titlesCount;
+    long int pageCount;
     long int totalCount;
     char* token;
 }TitlesResponse;
@@ -102,14 +103,14 @@ typedef struct {
 
 /**
  * @param url
- * @param fileName
+ * @param fp file pointer
  * @return false - if ok \n
  * @return true - if error has occurred \n\n
  * gets info from api referenced by the @code url@endcode and inserts it into the desired @code fileName@endcode
  *
  *- appends every request to the end of the file
 */
-int Get_Info(char* url, const char* fileName);
+int get_info(char* url, FILE* fp);
 
 
 /**
@@ -148,5 +149,19 @@ void free_titles_response(TitlesResponse *r);
  * @param pageCount count of the titles in the api's page response
  * @param fp binary file pointer
  */
-void record_on_binary(const Title* titlesArray, int pageCount, FILE* fp);
+void record_title_on_binary(const Title* titlesArray, int pageCount, FILE* fp);
+
+/**
+ *
+ * @param fp pointer to file
+ * @return pointer to file buffer
+ */
+char *read_entire_file(FILE *fp);
+
+/**
+ * reach out to the api and request full access to the database for titles table
+ * destination archive: binaryInfo.bin
+ */
+void make_titles_full_request();
 #endif //IMDB_QUERY_IQUERY_H
+

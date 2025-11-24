@@ -1,6 +1,6 @@
 
 cmake_minimum_required(VERSION 3.20)
-project(IMDB-Query C)
+project(IMDB_Query C)
 
 find_package(CURL REQUIRED)
 find_package(cjson CONFIG REQUIRED)

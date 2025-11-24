@@ -5,13 +5,14 @@
 #include <curl/curl.h>
 #include <cjson/cJSON.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "IQuery.h"
 #include "util.h"
 
 
 
 
-int get_info(char* url, const char* fileName) {
+int get_info(char* url, FILE* fp) {
     CURL* curl = curl_easy_init();
     CURLcode res = 0;
     //operating principles
@@ -43,12 +44,15 @@ int get_info(char* url, const char* fileName) {
         printf("curl erro %s\n", curl_easy_strerror(res));
         return 2;
     }
-    FILE* fp = fopen(fileName, "a");
-
-    printf("Size: %lu\n", (unsigned long)chunk.size);
-    fprintf(fp, "Data:%s\n", chunk.memory);
-
-    fclose(fp);
+    char *temp = realloc(chunk.memory, chunk.size + 1);
+    if (!temp) {
+        free(chunk.memory);
+        fprintf(stderr, "Out of memory\n");
+        return 0; // or CURLE_WRITE_ERROR
+    }
+    chunk.memory = temp;
+    chunk.memory[chunk.size] = '\0';
+    fprintf(fp, "%s\n", chunk.memory);
     curl_easy_cleanup(curl);
     free(chunk.memory);
 
@@ -105,7 +109,7 @@ Title parse_title(const cJSON *item) {
 }
 
 void free_titles_response(TitlesResponse *r) {
-    for (int i = 0; i < r->titlesCount; i++) {
+    for (int i = 0; i < r->pageCount; i++) {
         Title *t = &r->titles[i];
 
         free(t->id);
@@ -126,23 +130,20 @@ void free_titles_response(TitlesResponse *r) {
 }
 
 int get_page_item(FILE* fp, TitlesResponse *r) {
-    char buffer[32768];
-    int pos = 0;
+    char *buffer  = read_entire_file(fp);
     int pageCount = 0;
     fseek(fp, 0, SEEK_SET);
-    //-----read entire json file-----------
-    while (!feof(fp) && pos < sizeof(buffer)) {
-        buffer[pos] = (char) fgetc(fp);
-        pos++;
-    }
-    buffer[sizeof(buffer) - 1] = '\0';
     //-----parse buffer--------------------
     cJSON *root = cJSON_Parse(buffer);
     if (root == NULL) {
+        const char *error = cJSON_GetErrorPtr();
+        if (error) {
+            printf("JSON Parse Error before: %s\n", error);
+        }
         return 0;
     }
     cJSON *totalCount = cJSON_GetObjectItem(root, "totalCount");
-    r->totalCount = totalCount->valueint;
+    r->totalCount = totalCount ? totalCount->valueint : 0; //analyse cJSON* totalCount and write valueInt or 0
     cJSON *nextPageToken = cJSON_GetObjectItem(root, "nextPageToken");
     if (!nextPageToken) {
         r->token = NULL;
@@ -152,24 +153,43 @@ int get_page_item(FILE* fp, TitlesResponse *r) {
     }
 
     cJSON *titles = cJSON_GetObjectItem(root, "titles");
+    if (!titles || !cJSON_IsArray(titles)) {
+        cJSON_Delete(root);
+        free(buffer);
+        return 0;
+    }
     pageCount = cJSON_GetArraySize(titles);
-    r->titlesCount = pageCount;
+    r->pageCount = pageCount;
     r->titles = malloc(sizeof(Title) * pageCount);
     for (int i = 0; i < pageCount; i++) {
         r->titles[i] = parse_title(cJSON_GetArrayItem(titles, i));
     }
     cJSON_Delete(root);
+    free(buffer);
     return pageCount;
 }
 
-void record_on_binary(const Title* titlesArray, int pageCount, FILE* fp) {
+char *read_entire_file(FILE *fp) {
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+    rewind(fp);
+
+    char *buf = malloc(size + 1);
+    if (!buf) return NULL;
+
+    size_t n = fread(buf, 1, size, fp);
+    buf[n] = '\0';
+    return buf;
+}
+
+void record_title_on_binary(const Title* titlesArray, int pageCount, FILE* fp) {
     char id[64] = {0};
     char type[32] = {0};
     char primaryTitle[64] = {0};
     char originalTitle[64] = {0};
     //double Rating;
     //long int voteCount;
-    char plot[256] = {0};
+    char plot[1024] = {0};
     //int startYear;
     //int runtimeSeconds;
     for (int i =0; i < pageCount; i++) {
@@ -178,14 +198,21 @@ void record_on_binary(const Title* titlesArray, int pageCount, FILE* fp) {
         strncpy(type, titlesArray[i].type, sizeof(type) - 1);
         strncpy(primaryTitle, titlesArray[i].primaryTitle, sizeof(primaryTitle) - 1);
         strncpy(originalTitle, titlesArray[i].originalTitle, sizeof(originalTitle) - 1);
-        strncpy(plot, titlesArray[i].plot, sizeof(plot) - 1);
+        if (!titlesArray[i].plot) {
+            printf("NULL plot detected at index %d\n", i);
+        }
+        if (titlesArray[i].plot) {
+            strncpy(plot, titlesArray[i].plot, sizeof(plot) - 1);
+            plot[sizeof(plot) - 1] = '\0';
+        } else {
+            plot[0] = '\0';  // safe empty string
+        }
 
         //truncate end of data by substituting it with '\0' in case of overflow
         id[sizeof(id) - 1] = '\0';
         type[sizeof(type) - 1] = '\0';
         primaryTitle[sizeof(primaryTitle) - 1] = '\0';
         originalTitle[sizeof(originalTitle) - 1] = '\0';
-        plot[sizeof(plot) - 1] = '\0';
 
         //write data into file
         fwrite(id, sizeof(char), sizeof(id), fp);
@@ -198,4 +225,31 @@ void record_on_binary(const Title* titlesArray, int pageCount, FILE* fp) {
         fwrite(&titlesArray[i].startYear, sizeof(int), 1, fp);
         fwrite(&titlesArray[i].runtimeSeconds, sizeof(int), 1, fp);
     }
+}
+
+void make_titles_full_request() {
+    char url[1024] = {IMDB_QUERY_URL};
+    int totalProcessed = 0;
+    int i = 0;
+
+    do {
+        printf("%d\n", i++);
+        TitlesResponse* t = malloc(sizeof(TitlesResponse));
+        FILE* filePointer = fopen("data.json", "w");
+        get_info(url, filePointer);
+        fclose(filePointer);
+        FILE* jsonFilePointer = fopen("data.json", "r");
+        int pageCount = get_page_item(jsonFilePointer, t);
+        fclose(jsonFilePointer);
+        FILE* binFp = fopen("titlesBinaryInfo.bin", "ab");
+        record_title_on_binary(t->titles, pageCount , binFp);
+        fclose(binFp);
+        totalProcessed += pageCount;
+        if (t->token != NULL && strlen(t->token) > 0) {
+            snprintf(url, sizeof(url), "%s?pageToken=%s", IMDB_QUERY_URL, t->token);
+        } else {
+            snprintf(url, sizeof(url), "%s", IMDB_QUERY_URL);
+        }
+        free_titles_response(t);
+    }while (totalProcessed < 2378285);
 }
