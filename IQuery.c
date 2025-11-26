@@ -1,6 +1,15 @@
-//
+//titles queries
 // Created by joaop on 21/11/2025.
 //
+
+/*make request model:
+* 1 - get info from titles and insert it into a binary file
+* 2 - use the id that's being stored into the bin file and use it to get data from:
+* titles\{titleId}\awardNominations
+* titles\{titlesId}\episodes
+* store each in a streamlined way from each url for every item stored in the titles binary file
+*
+*/
 
 #include <curl/curl.h>
 #include <cjson/cJSON.h>
@@ -311,3 +320,10 @@ int is_file_empty(FILE *fp) {
     rewind(fp);                  // return to start
     return size == 0;
 }
+/*
+ *streamlined logic for parsing awards from requests
+ */
+void parse_awards() {
+
+}
+

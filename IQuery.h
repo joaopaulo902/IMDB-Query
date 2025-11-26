@@ -109,6 +109,15 @@ typedef struct {
 } TitleDisk;
 
 
+typedef struct {
+    Stats stats;
+
+}AwardsResponse;
+
+typedef struct {
+    int nominationCount;
+    int winCount;
+}Stats;
 
 /**
  * @param url
