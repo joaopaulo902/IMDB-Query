@@ -10,18 +10,17 @@
 #include <stdlib.h>
 #include "IQuery.h"
 #include "util.h"
+#include "entities.h"
+
+#define IMDB_QUERY_URL "https://api.imdbapi.dev/titles"
 
 
-typedef struct {
-    int width;
-    int height;
-    char* href;
-}ImageSpecifics;
 
 typedef struct {
-    double IMDBrating;
-    long int voteCount;
-}Rating;
+    int aggregateRating;
+    int voteCount;
+}parseRating;
+
 
 /**
  * Struct for storing a @code Title's@endcode info
@@ -48,25 +47,24 @@ typedef struct {
     char *type;
     char *primaryTitle;
     char *originalTitle;
-
-    ImageSpecifics image;
     int startYear;
     int runtimeSeconds;
 
     char **genres;
     int genres_count;
 
-    Rating rating;
+    parseRating rating;
 
     char *plot;
-} Title;
+} parseTitle;
+
 
 /**
  * Struct for storing a page of the api's response
  */
 typedef struct {
-    Title *titles;
-    long int titlesCount;
+    parseTitle *titles;
+    long int pageCount;
     long int totalCount;
     char* token;
 }TitlesResponse;
@@ -77,11 +75,12 @@ typedef struct {
  *
  */
 typedef struct {
-    char id[32];
+    int32_t primaryKey;
     char type[32];
     char primaryTitle[128];
     char originalTitle[128];
     char plot[512];
+    int32_t ratingKey;
 
     struct {
         char href[256];
@@ -89,27 +88,29 @@ typedef struct {
         int height;
     } image;
 
-    struct {
-        double IMDBrating;
-        int voteCount;
-    } rating;
-
-    char genres[10][32];
-    int genres_count;
 } TitleDisk;
 
+typedef struct {
+    int nominationCount;
+    int winCount;
+}Stats;
+
+typedef struct {
+    Stats stats;
+
+}AwardsResponse;
 
 
 /**
  * @param url
- * @param fileName
+ * @param fp file pointer
  * @return false - if ok \n
  * @return true - if error has occurred \n\n
  * gets info from api referenced by the @code url@endcode and inserts it into the desired @code fileName@endcode
  *
  *- appends every request to the end of the file
 */
-int Get_Info(char* url, const char* fileName);
+int get_info(char* url, FILE* fp);
 
 
 /**
@@ -132,7 +133,7 @@ int get_page_item(FILE* fp, TitlesResponse *r);
 * @return t individual title struct\n
 * parse @code item@endcode  from the json file individually
 */
-Title parse_title(const cJSON *item);
+parseTitle parse_title(const cJSON *item);
 
 /**
  *
@@ -148,5 +149,29 @@ void free_titles_response(TitlesResponse *r);
  * @param pageCount count of the titles in the api's page response
  * @param fp binary file pointer
  */
-void record_on_binary(const Title* titlesArray, int pageCount, FILE* fp);
+void record_titles_on_binary(const parseTitle* titlesArray, FileHeader fHeader, int pageCount, FILE* fp);
+
+/**
+ *
+ * @param fp pointer to file
+ * @return pointer to file buffer
+ */
+char *read_entire_file(FILE *fp);
+
+/**
+ * Reach out to the api and request full access to the titles database\n\n
+ * Destination file: titles.bin, rating.bin, genre.bin.
+ * At the file header, there is information about stuff like: file identifier, file version, record count and next
+ * url token, so the api's request can be resumed at any time.
+ */
+void make_titles_full_request();
+
+/**
+ *
+ * @param fp file pointer
+ * @return int that says if file is empty
+ * checks if file is empty after opening it
+ */
+int is_file_empty(FILE *fp);
 #endif //IMDB_QUERY_IQUERY_H
+
