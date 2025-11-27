@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include "IQuery.h"
 #include "util.h"
+#include "binService.h"
 
 
 
@@ -73,8 +74,8 @@ static char* json_strdup(const cJSON* obj) {
     return (obj && cJSON_IsString(obj)) ? strdup(obj->valuestring) : NULL;
 }
 
-parseTitle parse_title(const cJSON *item) {
-    parseTitle t = {0};
+ParseTitle parse_title(const cJSON *item) {
+    ParseTitle t = {0};
 
     t.id = json_strdup(cJSON_GetObjectItem(item, "id"));
     t.type = json_strdup(cJSON_GetObjectItem(item, "type"));
@@ -119,7 +120,7 @@ parseTitle parse_title(const cJSON *item) {
 
 void free_titles_response(TitlesResponse *r) {
     for (int i = 0; i < r->pageCount; i++) {
-        parseTitle *t = &r->titles[i];
+        ParseTitle *t = &r->titles[i];
 
         free(t->id);
         free(t->type);
@@ -168,7 +169,7 @@ int get_page_item(FILE* fp, TitlesResponse *r) {
     }
     pageCount = cJSON_GetArraySize(titles);
     r->pageCount = pageCount;
-    r->titles = malloc(sizeof(parseTitle) * pageCount);
+    r->titles = malloc(sizeof(ParseTitle) * pageCount);
     for (int i = 0; i < pageCount; i++) {
         r->titles[i] = parse_title(cJSON_GetArrayItem(titles, i));
     }
@@ -190,32 +191,15 @@ char *read_entire_file(FILE *fp) {
     return buf;
 }
 
-void record_title_on_binary(const parseTitle* titlesArray, FileHeader fHeader, int pageCount, FILE* fp) {
-    Titles entry = {0};
 
+void record_titles_page_on_binary(const ParseTitle* titlesArray, FileHeader fHeader, int pageCount, FILE* fp) {
     for (int i = 0; i < pageCount; i++) {
-        //copy data into fixed size strings
-        strncpy(entry.IMDBid, titlesArray[i].id, sizeof(entry.IMDBid) - 1);
-        strncpy(entry.type, titlesArray[i].type, sizeof(entry.type) - 1);
-        strncpy(entry.primaryTitle, titlesArray[i].primaryTitle, sizeof(entry.primaryTitle) - 1);
+        Titles entry = {0};
         if (!titlesArray[i].plot) {
             printf("NULL plot detected at index %d\n", i);
         }
-        else if (titlesArray[i].plot) {
-            strncpy(entry.plot, titlesArray[i].plot, sizeof(entry.plot) - 1);
-            entry.plot[sizeof(entry.plot) - 1] = '\0';
-        } else {
-            entry.plot[0] = '\0';  // safe empty string
-        }
-
-        //truncate end of data by substituting it with '\0' in case of overflow
-        entry.IMDBid[sizeof(entry.IMDBid) - 1] = '\0';
-        entry.type[sizeof(entry.type) - 1] = '\0';
-        entry.primaryTitle[sizeof(entry.primaryTitle) - 1] = '\0';
-
-        //write data into file
         entry.id = i + fHeader.recordCount;
-        fwrite(&entry , sizeof(Titles), 1, fp);
+        put_title(entry, titlesArray[i], fHeader, fp);
     }
 }
 
@@ -277,7 +261,7 @@ void make_titles_full_request() {
         }
         int pageCount = get_page_item(jsonFilePointer, t);
         fclose(jsonFilePointer);
-        record_title_on_binary(t->titles, fH, pageCount , binFp);
+        record_titles_page_on_binary(t->titles, fH, pageCount , binFp);
         fH.recordCount += pageCount;
         if (t->token != NULL && strlen(t->token) > 0) {
             snprintf(url, sizeof(url), "%s?pageToken=%s", IMDB_QUERY_URL, t->token);

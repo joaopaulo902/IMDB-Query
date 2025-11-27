@@ -1,7 +1,9 @@
 //
 // Created by joaop on 25/11/2025.
 //
-
+/*
+ *contains types used by local storage
+ */
 #ifndef IMDB_QUERY_ENTITIES_H
 #define IMDB_QUERY_ENTITIES_H
 

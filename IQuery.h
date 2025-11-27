@@ -56,14 +56,14 @@ typedef struct {
     parseRating rating;
 
     char *plot;
-} parseTitle;
+} ParseTitle;
 
 
 /**
  * Struct for storing a page of the api's response
  */
 typedef struct {
-    parseTitle *titles;
+    ParseTitle *titles;
     long int pageCount;
     long int totalCount;
     char* token;
@@ -133,7 +133,7 @@ int get_page_item(FILE* fp, TitlesResponse *r);
 * @return t individual title struct\n
 * parse @code item@endcode  from the json file individually
 */
-parseTitle parse_title(const cJSON *item);
+ParseTitle parse_title(const cJSON *item);
 
 /**
  *
@@ -146,10 +146,11 @@ void free_titles_response(TitlesResponse *r);
 /**
  *
  * @param titlesArray allocated array that stores the api's pages titles
+ * @param fHeader file Header struct
  * @param pageCount count of the titles in the api's page response
  * @param fp binary file pointer
  */
-void record_titles_on_binary(const parseTitle* titlesArray, FileHeader fHeader, int pageCount, FILE* fp);
+void record_titles_page_on_binary(const ParseTitle* titlesArray, FileHeader fHeader, int pageCount, FILE* fp);
 
 /**
  *
