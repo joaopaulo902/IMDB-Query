@@ -73,8 +73,8 @@ static char* json_strdup(const cJSON* obj) {
     return (obj && cJSON_IsString(obj)) ? strdup(obj->valuestring) : NULL;
 }
 
-Title parse_title(const cJSON *item) {
-    Title t = {0};
+parseTitle parse_title(const cJSON *item) {
+    parseTitle t = {0};
 
     t.id = json_strdup(cJSON_GetObjectItem(item, "id"));
     t.type = json_strdup(cJSON_GetObjectItem(item, "type"));
@@ -88,18 +88,18 @@ Title parse_title(const cJSON *item) {
     cJSON *runtime = cJSON_GetObjectItem(item, "runtimeSeconds");
     if (cJSON_IsNumber(runtime)) t.runtimeSeconds = runtime->valueint;
 
-    // ---- primaryImage ----
-    cJSON *image = cJSON_GetObjectItem(item, "primaryImage");
+    // ---- primaryImage ---- wont be used
+/*    cJSON *image = cJSON_GetObjectItem(item, "primaryImage");
     if (cJSON_IsObject(image)) {
         t.image.href = json_strdup(cJSON_GetObjectItem(image, "url"));
         t.image.width = cJSON_GetObjectItem(image, "width")->valueint;
         t.image.height = cJSON_GetObjectItem(image, "height")->valueint;
     }
-
+*/
     // ---- rating ----
     cJSON *rating = cJSON_GetObjectItem(item, "rating");
     if (cJSON_IsObject(rating)) {
-        t.rating.IMDBrating = cJSON_GetObjectItem(rating, "aggregateRating")->valuedouble;
+        t.rating.aggregateRating = cJSON_GetObjectItem(rating, "aggregateRating")->valuedouble;
         t.rating.voteCount = cJSON_GetObjectItem(rating, "voteCount")->valueint;
     }
 
@@ -119,14 +119,13 @@ Title parse_title(const cJSON *item) {
 
 void free_titles_response(TitlesResponse *r) {
     for (int i = 0; i < r->pageCount; i++) {
-        Title *t = &r->titles[i];
+        parseTitle *t = &r->titles[i];
 
         free(t->id);
         free(t->type);
         free(t->primaryTitle);
         free(t->originalTitle);
         free(t->plot);
-        free(t->image.href);
 
         for (int g = 0; g < t->genres_count; g++)
             free(t->genres[g]);
@@ -169,7 +168,7 @@ int get_page_item(FILE* fp, TitlesResponse *r) {
     }
     pageCount = cJSON_GetArraySize(titles);
     r->pageCount = pageCount;
-    r->titles = malloc(sizeof(Title) * pageCount);
+    r->titles = malloc(sizeof(parseTitle) * pageCount);
     for (int i = 0; i < pageCount; i++) {
         r->titles[i] = parse_title(cJSON_GetArrayItem(titles, i));
     }
@@ -191,48 +190,32 @@ char *read_entire_file(FILE *fp) {
     return buf;
 }
 
-void record_title_on_binary(const Title* titlesArray, int pageCount, FILE* fp) {
-    char id[64] = {0};
-    char type[32] = {0};
-    char primaryTitle[64] = {0};
-    char originalTitle[64] = {0};
-    //double Rating;
-    //long int voteCount;
-    char plot[1024] = {0};
-    //int startYear;
-    //int runtimeSeconds;
-    for (int i =0; i < pageCount; i++) {
+void record_title_on_binary(const parseTitle* titlesArray, FileHeader fHeader, int pageCount, FILE* fp) {
+    Titles entry = {0};
+
+    for (int i = 0; i < pageCount; i++) {
         //copy data into fixed size strings
-        strncpy(id, titlesArray[i].id, sizeof(id) - 1);
-        strncpy(type, titlesArray[i].type, sizeof(type) - 1);
-        strncpy(primaryTitle, titlesArray[i].primaryTitle, sizeof(primaryTitle) - 1);
-        strncpy(originalTitle, titlesArray[i].originalTitle, sizeof(originalTitle) - 1);
+        strncpy(entry.IMDBid, titlesArray[i].id, sizeof(entry.IMDBid) - 1);
+        strncpy(entry.type, titlesArray[i].type, sizeof(entry.type) - 1);
+        strncpy(entry.primaryTitle, titlesArray[i].primaryTitle, sizeof(entry.primaryTitle) - 1);
         if (!titlesArray[i].plot) {
             printf("NULL plot detected at index %d\n", i);
         }
-        if (titlesArray[i].plot) {
-            strncpy(plot, titlesArray[i].plot, sizeof(plot) - 1);
-            plot[sizeof(plot) - 1] = '\0';
+        else if (titlesArray[i].plot) {
+            strncpy(entry.plot, titlesArray[i].plot, sizeof(entry.plot) - 1);
+            entry.plot[sizeof(entry.plot) - 1] = '\0';
         } else {
-            plot[0] = '\0';  // safe empty string
+            entry.plot[0] = '\0';  // safe empty string
         }
 
         //truncate end of data by substituting it with '\0' in case of overflow
-        id[sizeof(id) - 1] = '\0';
-        type[sizeof(type) - 1] = '\0';
-        primaryTitle[sizeof(primaryTitle) - 1] = '\0';
-        originalTitle[sizeof(originalTitle) - 1] = '\0';
+        entry.IMDBid[sizeof(entry.IMDBid) - 1] = '\0';
+        entry.type[sizeof(entry.type) - 1] = '\0';
+        entry.primaryTitle[sizeof(entry.primaryTitle) - 1] = '\0';
 
         //write data into file
-        fwrite(id, sizeof(char), sizeof(id), fp);
-        fwrite(primaryTitle, sizeof(char), sizeof(primaryTitle), fp);
-        fwrite(originalTitle, sizeof(char), sizeof(originalTitle), fp);
-        fwrite(type, sizeof(char), sizeof(type), fp);
-        fwrite(plot, sizeof(char), sizeof(plot), fp);
-        fwrite(&titlesArray[i].rating.IMDBrating, sizeof(double), 1, fp);
-        fwrite(&titlesArray[i].rating.voteCount, sizeof(long int), 1, fp);
-        fwrite(&titlesArray[i].startYear, sizeof(int), 1, fp);
-        fwrite(&titlesArray[i].runtimeSeconds, sizeof(int), 1, fp);
+        entry.id = i + fHeader.recordCount;
+        fwrite(&entry , sizeof(Titles), 1, fp);
     }
 }
 
@@ -241,14 +224,14 @@ void make_titles_full_request() {
     int i = 0;
     FileHeader fH = {0};
 
-    FILE* binFp = fopen("titlesBinaryInfo.bin", "rb+");
+    FILE* binFp = fopen("titles.bin", "rb+");
     if (!binFp)
-        binFp = fopen("titlesBinaryInfo.bin", "wb+");
+        binFp = fopen("titles.bin", "wb+");
 
     fseek(binFp, 0, SEEK_SET);
 
     if (is_file_empty(binFp)) {
-        fH.ID = FILE_ID;
+        fH.ID = TITLE_FILE_ID;
         fH.version = 1;
         fH.recordCount = 0;
         fH.nextPageToken[0] = '\0';
@@ -263,7 +246,7 @@ void make_titles_full_request() {
             return;
         }
 
-        if (fH.ID != FILE_ID) {
+        if (fH.ID != TITLE_FILE_ID) {
             printf("Invalid file format\n");
             fclose(binFp);
             return;
@@ -294,7 +277,7 @@ void make_titles_full_request() {
         }
         int pageCount = get_page_item(jsonFilePointer, t);
         fclose(jsonFilePointer);
-        record_title_on_binary(t->titles, pageCount , binFp);
+        record_title_on_binary(t->titles, fH, pageCount , binFp);
         fH.recordCount += pageCount;
         if (t->token != NULL && strlen(t->token) > 0) {
             snprintf(url, sizeof(url), "%s?pageToken=%s", IMDB_QUERY_URL, t->token);
