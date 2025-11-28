@@ -23,5 +23,19 @@ add_executable(IMDB_Query main.c
 target_link_libraries(IMDB_Query PRIVATE
         CURL::libcurl
         cjson
+)
 
+set(DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/data")
+
+add_custom_command(
+        TARGET IMDB_Query POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${DATA_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_BINARY_DIR}/titles.bin"
+        "${DATA_DIR}/titles.bin"
+        COMMENT "Atualizando titles.bin na pasta data (se estiver diferente)"
+)
+
+target_compile_definitions(IMDB_Query PRIVATE
+        PROJECT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
 )

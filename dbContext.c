@@ -12,9 +12,12 @@ void make_titles_full_request() {
     int i = 0;
     FileHeader fH = {0};
 
-    FILE* binFp = fopen("titles.bin", "rb+");
+    char path[512];
+    snprintf(path, sizeof(path), "%s/data/titles.bin", PROJECT_SOURCE_DIR);
+
+    FILE* binFp = fopen(path, "rb+");
     if (!binFp)
-        binFp = fopen("titles.bin", "wb+");
+        binFp = fopen(path, "wb+");
 
     fseek(binFp, 0, SEEK_SET);
 
