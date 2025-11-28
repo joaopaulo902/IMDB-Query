@@ -5,16 +5,15 @@
 #include "binService.h"
 #include <curl/curl.h>
 #include <stdio.h>
-#include "IQuery.h"
 #include "entities.h"
 
-void put_title(Titles entry, ParseTitle titlesArray, FileHeader* f, FILE* fp) {
+void put_title(Titles entry, ParseTitle dynamicTitle, FileHeader* f, FILE* fp) {
     //copy data into fixed size strings
-    strncpy(entry.IMDBid, titlesArray.id, sizeof(entry.IMDBid) - 1);
-    strncpy(entry.type, titlesArray.type, sizeof(entry.type) - 1);
-    strncpy(entry.primaryTitle, titlesArray.primaryTitle, sizeof(entry.primaryTitle) - 1);
-    if (titlesArray.plot) {
-        strncpy(entry.plot, titlesArray.plot, sizeof(entry.plot) - 1);
+    strncpy(entry.IMDBid, dynamicTitle.id, sizeof(entry.IMDBid) - 1);
+    strncpy(entry.type, dynamicTitle.type, sizeof(entry.type) - 1);
+    strncpy(entry.primaryTitle, dynamicTitle.primaryTitle, sizeof(entry.primaryTitle) - 1);
+    if (dynamicTitle.plot) {
+        strncpy(entry.plot, dynamicTitle.plot, sizeof(entry.plot) - 1);
         entry.plot[sizeof(entry.plot) - 1] = '\0';
     } else {
         entry.plot[0] = '\0';  // safe empty string
@@ -28,12 +27,21 @@ void put_title(Titles entry, ParseTitle titlesArray, FileHeader* f, FILE* fp) {
     fwrite(&entry , sizeof(Titles), 1, fp);
 }
 
+/**
+ *
+ * @param entry
+ * @param titlesArray
+ * @param fHead
+ * @param fp
+ *
+ */
 void put_stand_alone_title(Titles entry, ParseTitle titlesArray, FileHeader* fHead, FILE* fp) {
     fseek(fp, 0, SEEK_SET); //goes to beningin of file
     fread(fHead, sizeof(FileHeader), 1, fp); //reads the header
-    fseek(fp, ((sizeof(Titles) * fHead->recordCount) + sizeof(FileHeader)), SEEK_SET); // goes to last valid entry
-    entry.id = ++fHead->recordCount; //assigns incremented value of id
-    put_title(entry, titlesArray, fHead, fp); //inserts title into file
+    off_t offset = (off_t)sizeof(FileHeader) + (off_t)sizeof(Titles) * (off_t)fHead->recordCount;
+    _fseeki64(fp, offset, SEEK_SET);
+    entry.id = ++fHead->recordCount;
+    put_title(entry, titlesArray, fHead, fp);
     fseek(fp, 0, SEEK_SET); //goes to beningin again
     fwrite(fHead , sizeof(FileHeader), 1, fp); //overwrites Header
     fseek(fp, 0, SEEK_END); //goes to eof

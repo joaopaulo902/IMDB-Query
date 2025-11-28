@@ -10,17 +10,38 @@
 /**
  *
  * @param entry fixed size type that recieves the data input to the archive
- * @param titlesArray dynamically sized type that the data is passed as
+ * @param dynamicTitle dynamically sized type that the data is passed as
  * @param f fileHeader that contains the number of entries
  * @param fp filePointer
- * puts a title into titles.bin\n
- * if puting a standalone title into file, call put_stand_alone_title(Titles entry, ParseTitle titlesArray, FileHeader* f, FILE* fp);
+ * puts a title into titles.bin used when inserting titles in bulk\n
+ * (*)if inserting a standalone title into file, call put_stand_alone_title(Titles entry, ParseTitle titlesArray, FileHeader* f, FILE* fp);
  * * @code
  *
  * @endcode
  */
-void put_title(Titles entry, ParseTitle titlesArray, FileHeader* f, FILE* fp);
+void put_title(Titles entry, ParseTitle dynamicTitle, FileHeader* f, FILE* fp);
 
-void put_stand_alone_title(Titles entry, ParseTitle titlesArray, FileHeader* f, FILE* fp);
+/**
+ *
+ * @param entry Disk format entry
+ * @param dinamicTitle Loosely formated entry
+ * @param f file Header
+ * @param fp file pointer
+ */
+void put_stand_alone_title(Titles entry, ParseTitle dinamicTitle, FileHeader* f, FILE* fp);
+
+/**
+ *
+ * @param entry
+ * @param searchMode
+ * @return corresponding entry to the search
+ * @code
+ * *SEARCH MODE*
+ * 0 - name search
+ * 1 - id search
+ * @endcode
+ */
+Titles get_title(Titles entry, int searchMode);
+
 
 #endif //IMDB_QUERY_BINSERVICE_H

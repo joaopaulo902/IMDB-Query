@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <cjson/cJSON.h>
 
 #define TITLE_FILE_ID 0x4e49414d
 #define STATS_FILE_ID 0x54415453
@@ -17,9 +19,63 @@
 
 
 typedef struct {
+    double aggregateRating;
+    int voteCount;
+}parseRating;
+
+
+/**
+ * Struct for storing a @code Title's@endcode info
+ * @code
+    char *id;
+    char *type;
+    char *primaryTitle;
+    char *originalTitle;
+
+    ImageSpecifics image;
+    int startYear;
+    int runtimeSeconds;
+
+    char **genres;
+    int genres_count;
+
+    Rating rating;
+
+    char *plot;
+ * @endcode
+ */
+typedef struct {
+    char *id;
+    char *type;
+    char *primaryTitle;
+    char *originalTitle;
+    int startYear;
+    int runtimeSeconds;
+
+    char **genres;
+    int genres_count;
+
+    parseRating rating;
+
+    char *plot;
+} ParseTitle;
+
+
+/**
+ * Struct for storing a page of the api's response
+ */
+typedef struct {
+    ParseTitle *titles;
+    long int pageCount;
+    long int totalCount;
+    char* token;
+}TitlesResponse;
+
+
+typedef struct {
     uint64_t ID;        // File identifier
     uint32_t version;      // Format version
-    uint64_t recordCount;  // How many titles exist
+    int64_t recordCount;  // How many titles exist
     char nextPageToken[1024]; //what is the next page's token if processing is halted
 } FileHeader;
 /**
@@ -85,8 +141,8 @@ typedef struct {
     int startYear; //start airing year
     int endYear; //final airing year (for tv series or shows)
 
-    int64_t statId; //correspondent stat Id offset for title
-    int64_t ratingId; //correspondent rating Id offset for title
+    int64_t statId; //correspondent stat ID offset for title
+    int64_t ratingId; //correspondent rating ID offset for title
     //int isAdult; actual boolean type: maybe we put it in
 } Titles;
 
@@ -156,5 +212,70 @@ typedef struct {
     int64_t titleId;
     bool isWinner;
 } Nomination;
+
+/**
+ *
+ * @param fp json file pointer
+ * @param r TitleResponse struct for storing data
+ * @return number of titles in the page
+ * processes an api request. takes a json format entry and converts it into a temporary dynamically allocated struct
+ */
+int get_page_title_item(FILE* fp, TitlesResponse *r);
+
+/**
+ * @param obj
+ * @return json string item
+ *
+ * if string object is a string and not NULL, returns the string object
+ */
+static char* json_strdup(const cJSON* obj);
+
+
+/**
+* @param item pointer to an item
+* @return t individual title struct\n
+* parse @code item@endcode  from the json file individually
+*/
+ParseTitle parse_title(const cJSON *item);
+
+/**
+ *
+ * @param r struct that contains an array of titles, and it's count
+ *
+ * frees allocated struct @code TitlesResponse@endcode
+ */
+void free_titles_response(TitlesResponse *r);
+
+/**
+ *
+ * @param titlesArray allocated array that stores the api's pages titles
+ * @param fHeader file Header struct
+ * @param pageCount count of the titles in the api's page response
+ * @param fp binary file pointer
+ */
+void record_titles_page_on_binary(const ParseTitle* titlesArray, FileHeader fHeader, int pageCount, FILE* fp);
+
+/**
+ *
+ * @param fp pointer to file
+ * @return pointer to file buffer
+ */
+char *read_entire_file(FILE *fp);
+
+/**
+ * Reach out to the api and request full access to the titles database\n\n
+ * Destination file: titles.bin, rating.bin, genre.bin.
+ * At the file header, there is information about stuff like: file identifier, file version, record count and next
+ * url token, so the api's request can be resumed at any time.
+ */
+void make_titles_full_request();
+
+/**
+ *
+ * @param fp file pointer
+ * @return int that says if file is empty
+ * checks if file is empty after opening it
+ */
+int is_file_empty(FILE *fp);
 
 #endif //IMDB_QUERY_ENTITIES_H

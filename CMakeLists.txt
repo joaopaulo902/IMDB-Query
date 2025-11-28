@@ -13,7 +13,11 @@ add_executable(IMDB_Query main.c
         entities.c
         entities.h
         binService.c
-        binService.h)
+        binService.h
+        dbContext.c
+        dbContext.h
+        apiHandler.c
+        apiHandler.h)
 
 
 target_link_libraries(IMDB_Query PRIVATE
