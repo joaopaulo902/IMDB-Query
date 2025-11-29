@@ -13,13 +13,16 @@
 
 void initialize_system();
 
-void clearScreen();
+void clear_screen();
 
-void printTitleListHeader(int currentPage, int totalPages);
+void print_title_list_header(int currentPage, int totalPages);
 
-void printPage(Titles *titles, int totalMovies, int currentPage);
+void print_info_header();
 
-void show_info(Titles *movies, int totalMovies);
+void print_titles_list(Titles *titles, int totalMovies, int currentPage);
 
-void updateData();
+void print_menu_options();
+
+void show_info_page(int totalMovies);
+
 #endif //SYSMANAGER_H
