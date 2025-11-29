@@ -8,12 +8,18 @@
 #include <stdio.h>
 #include <cjson/cJSON.h>
 #include <string.h>
-#include "binService.h"
 
-int get_page_title_item(FILE* fp, TitlesResponse *r) {
-    char *buffer  = read_entire_file(fp);
+#include "apiHandler.h"
+#include "binService.h"
+#include "util.h"
+
+int get_page_title_item(TitlesResponse *r, char fileName[]) {
     int pageCount = 0;
-    fseek(fp, 0, SEEK_SET);
+    FILE* jsonFilePointer = fopen("data.json", "r");
+    if (!jsonFilePointer) {
+        return -1;
+    }
+    char *buffer  = read_entire_file(jsonFilePointer);
     //-----parse buffer--------------------
     cJSON *root = cJSON_Parse(buffer);
     if (root == NULL) {
@@ -47,6 +53,7 @@ int get_page_title_item(FILE* fp, TitlesResponse *r) {
     }
     cJSON_Delete(root);
     free(buffer);
+    fclose(jsonFilePointer);
     return pageCount;
 }
 
@@ -119,28 +126,55 @@ void free_titles_response(TitlesResponse *r) {
 
 
 
-char *read_entire_file(FILE *fp) {
-    fseek(fp, 0, SEEK_END);
-    long size = ftell(fp);
-    rewind(fp);
-
-    char *buf = malloc(size + 1);
-    if (!buf) return NULL;
-
-    size_t n = fread(buf, 1, size, fp);
-    buf[n] = '\0';
-    return buf;
-}
 
 
-void record_titles_page_on_binary(const ParseTitle* titlesArray, FileHeader fHeader, int pageCount, FILE* fp) {
-    for (int i = 0; i < pageCount; i++) {
-        Titles entry = {0};
-        if (!titlesArray[i].plot) {
+
+void record_title_on_binary(ParseTitle title, FileHeader fHeader, int i, char fileName[]) {
+        Titles title_entry = {0};
+        FILE* fp = fopen(fileName, "rb+");
+        if (!title.plot) {
             printf("NULL plot detected at index %d\n", i);
         }
-        entry.id = i + fHeader.recordCount;
-        put_title(entry, titlesArray[i], &fHeader, fp);
-    }
+        title_entry.id = i + fHeader.recordCount;
+
+        put_title(title_entry, title, &fHeader, fp);
+
 }
 
+char* get_file_header(FileHeader *fH, char fileName[]) {
+    FILE* binFp = fopen(fileName, "rb");
+    if (!binFp)
+        binFp = fopen(fileName, "wb+");
+
+    fseek(binFp, 0, SEEK_SET);
+
+    if (is_file_empty(binFp)) {
+        fH->ID = TITLE_FILE_ID;
+        fH->version = 1;
+        fH->recordCount = 0;
+        fH->nextPageToken[0] = '\0';
+
+        fwrite(&fH, sizeof(FileHeader), 1, binFp);
+        fseek(binFp, sizeof(FileHeader), SEEK_SET);
+    }
+    if (fread(&fH, sizeof(FileHeader), 1, binFp) != 1) {
+            perror("Failed to read header");
+            fclose(binFp);
+            return "-1";
+    }
+    if (fH->ID != TITLE_FILE_ID) {
+        printf("Invalid file format\n");
+        fclose(binFp);
+        return "-1";
+    }
+    if (fH->nextPageToken[0] != '\0') {
+        fclose(binFp);
+        return fH->nextPageToken;
+    }
+    else {
+        fclose(binFp);
+        return "\0";
+    }
+
+
+}

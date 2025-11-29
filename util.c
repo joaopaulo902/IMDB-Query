@@ -9,7 +9,7 @@
 #include <string.h>
 
 
-size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
+size_t WriteMemoryCallback(const void *contents, size_t size, size_t nmemb, void *userp) {
     size_t realsize = size * nmemb;
     struct MemoryStruct *mem = (struct MemoryStruct*)userp;
 
@@ -27,3 +27,23 @@ size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *user
     return realsize;
 }
 
+
+char *read_entire_file(FILE *fp) {
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+    rewind(fp);
+
+    char *buf = malloc(size + 1);
+    if (!buf) return NULL;
+
+    size_t n = fread(buf, 1, size, fp);
+    buf[n] = '\0';
+    return buf;
+}
+
+int is_file_empty(FILE *fp) {
+    fseek(fp, 0, SEEK_END);      // go to end
+    long size = ftell(fp);       // get position (file size)
+    rewind(fp);                  // return to start
+    return size == 0;
+}

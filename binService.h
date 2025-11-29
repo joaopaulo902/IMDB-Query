@@ -24,11 +24,20 @@ void put_title(Titles entry, ParseTitle dynamicTitle, FileHeader* f, FILE* fp);
 /**
  *
  * @param entry Disk format entry
- * @param dinamicTitle Loosely formated entry
+ * @param dynamicTitle Loosely formated entry
  * @param f file Header
  * @param fp file pointer
  */
-void put_stand_alone_title(Titles entry, ParseTitle dinamicTitle, FileHeader* f, FILE* fp);
+void put_stand_alone_title(Titles entry, ParseTitle dynamicTitle, FileHeader* f, FILE* fp);
+
+/**
+ *
+ * @param entry
+ * @param dynamicRating
+ * @param fHeader
+ * @param fp
+ */
+void put_rating(Rating entry, ParseRating dynamicRating, FileHeader fHeader, FILE* fp);
 
 /**
  *
@@ -42,6 +51,8 @@ void put_stand_alone_title(Titles entry, ParseTitle dinamicTitle, FileHeader* f,
  * @endcode
  */
 Titles get_title(Titles entry, int searchMode);
+
+void update_file_header(FileHeader* fH, char* title);
 
 
 #endif //IMDB_QUERY_BINSERVICE_H

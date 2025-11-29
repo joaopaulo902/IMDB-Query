@@ -10,7 +10,7 @@
 
 
 
-int get_info(char* url, FILE* fp) {
+int get_info(char* url, char fileName[]) {
     CURL* curl = curl_easy_init();
     CURLcode res = 0;
     //operating principles
@@ -19,6 +19,12 @@ int get_info(char* url, FILE* fp) {
      * - perform actions
      * - clean up after yourself
     */
+    FILE* filePointer = fopen(fileName, "w");
+    if (!filePointer) {
+        perror("Failed to open data.json on writing");
+        free_titles_response(t);
+        break;
+    }
 
     if (!curl) {
         printf("curl nao está funcionando corretamente");
@@ -53,6 +59,7 @@ int get_info(char* url, FILE* fp) {
     fprintf(fp, "%s\n", chunk.memory);
     curl_easy_cleanup(curl);
     free(chunk.memory);
+    fclose(filePointer);
 
     return 0;
 }

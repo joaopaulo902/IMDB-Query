@@ -10,14 +10,13 @@
 
 /**
  * @param url
- * @param fp file pointer
+ * @param fileName name of the file in which the data will be store
  * @return false - if ok \n
  * @return true - if error has occurred \n\n
  * gets info from api referenced by the @code url@endcode and inserts it into the desired @code fileName@endcode
- *
- *- appends every request to the end of the file
+ * creates a new instance of the file every call
 */
-int get_info(char* url, FILE* fp);
+int get_info(char* url, char fileName[]);
 
 
 #endif //IMDB_QUERY_APIHANDLER_H
