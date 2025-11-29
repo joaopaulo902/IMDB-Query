@@ -131,6 +131,7 @@ void initialize_system() {
                 continue;
             case 'o':
             case 'O':
+                order_by_year(titles, totalMovies);
                 // Show order options on menu
                 continue;
             default:
@@ -193,7 +194,7 @@ void print_titles_list(Titles *titles, int totalMovies, int currentPage) {
 
 void print_menu_options() {
     printf("==================================================================================\n");
-    printf("[s] Buscar registro      |  [o] Ordenar                |  [i] Info\n");
+    printf("[s] Buscar registro      |  [o] Ordenar por ano        |  [i] Info\n");
     printf("[n] Proxima pagina       |  [p] Pagina anterior        |  [q] Sair\n");
     printf("Comando: ");
 }
@@ -214,4 +215,17 @@ void show_info_page(int totalMovies) {
 
     clear_screen();
 }
+
+void order_by_year(Titles *titles, int totalMovies) {
+    for (int i = 0; i < totalMovies - 1; i++) {
+        for (int j = 0; j < totalMovies - i - 1; j++) {
+            if (titles[j].startYear > titles[j + 1].startYear) {
+                Titles temp = titles[j];
+                titles[j] = titles[j + 1];
+                titles[j + 1] = temp;
+            }
+        }
+    }
+}
+
 
