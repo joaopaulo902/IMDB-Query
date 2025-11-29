@@ -65,6 +65,14 @@ void initialize_system() {
         {
             10, "tt0000010", "short", "The Execution of Mary Stuart", "Execução de Maria Stuart encenada", 1895, 0, {0},
             (time_t) (-1), (time_t) (-1), -1
+        },
+        {
+            11, "tt0000011", "short", "The Kiss", "Primeiro beijo filmado", 1896, 0, {0},
+            (time_t) (-1), (time_t) (-1), -1
+        },
+        {
+            12, "tt0000012", "short", "The Lonely Villa", "Drama de suspense em uma vila isolada", 1909, 0, {0},
+            (time_t) (-1), (time_t) (-1), -1
         }
     };
 
