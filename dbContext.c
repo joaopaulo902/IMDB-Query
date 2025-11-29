@@ -15,8 +15,12 @@ void make_titles_full_request() {
     char url[1024] = {IMDB_QUERY_URL};
     int i = 0;
     FileHeader fH = {0};
-
-    get_file_header(&fH, "titles.bin");
+    int rvalue = get_file_header(&fH, "titles.bin");
+    if (rvalue != 0 ) {
+        perror("error in get_file_header");
+        return;
+    }
+    update_file_header(&fH, "titles.bin");
     printf("%llu\n", fH.recordCount);
     do {
         printf("%d\n", i++);
