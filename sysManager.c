@@ -87,7 +87,7 @@ void initialize_system() {
         char cmd = '\0';
 
         if (cmd == '\0' || cmd == 'l' || cmd == 'L') {
-            clearScreen();
+            clear_screen();
             print_titles_list(titles, totalMovies, currentPage);
             print_menu_options();
         }
@@ -123,7 +123,15 @@ void initialize_system() {
             case 'i':
             case 'I':
                 // Show info
-                show_info(titles, totalMovies);
+                show_info_page(totalMovies);
+                continue;
+            case 's':
+            case 'S':
+                // Show search page
+                continue;
+            case 'o':
+            case 'O':
+                // Show order options on menu
                 continue;
             default:
                 printf("Comando desconhecido. Use n, p, i ou q.\n");
@@ -131,13 +139,13 @@ void initialize_system() {
         }
     }
 
-    clearScreen();
+    clear_screen();
     // Show cursor before exiting
     printf("\033[?25h");
     printf("Encerrando...\n");
 }
 
-void clearScreen() {
+void clear_screen() {
     // Hide cursor
     printf("\033[?25l");
     // Clear screen
@@ -148,7 +156,7 @@ void clearScreen() {
     fflush(stdout);
 }
 
-void printTitleListHeader(int currentPage, int totalPages) {
+void print_title_list_header(int currentPage, int totalPages) {
     read_title();
     printf("==================================================================================\n");
     printf("||  LISTA DE FILMES                                            |  Pagina %d de %d *\n", currentPage + 1,
@@ -158,13 +166,20 @@ void printTitleListHeader(int currentPage, int totalPages) {
     printf("-----+----------------------------------------------------+--------+------+------\n");
 }
 
+void print_info_header() {
+    read_title();
+    printf("==================================================================================\n");
+    printf("||  INFORMACOES DO SISTEMA                                                       *\n");
+    printf("==================================================================================\n");
+}
+
 void print_titles_list(Titles *titles, int totalMovies, int currentPage) {
     int totalPages = (totalMovies + PAGE_SIZE - 1) / PAGE_SIZE;
     int start = currentPage * PAGE_SIZE;
     int end = start + PAGE_SIZE;
     if (end > totalMovies) end = totalMovies;
 
-    printTitleListHeader(currentPage, totalPages);
+    print_title_list_header(currentPage, totalPages);
 
     for (int i = start; i < end; i++) {
         printf("%-4d | %-50s |  %4.1f  | %-4d | %-10s\n",
@@ -183,11 +198,13 @@ void print_menu_options() {
     printf("Comando: ");
 }
 
-void show_info(Titles *movies, int totalMovies) {
+void show_info_page(int totalMovies) {
+
     int totalPages = (totalMovies + PAGE_SIZE - 1) / PAGE_SIZE;
 
-    clearScreen();
-    printf("\n--- Informacoes gerais ---\n");
+    clear_screen();
+    print_info_header();
+
     printf("Total de filmes: %d\n", totalMovies);
     printf("Total de paginas: %d (tamanho da pagina: %d)\n", totalPages, PAGE_SIZE);
     printf("Pressione ENTER para continuar...");
@@ -195,6 +212,6 @@ void show_info(Titles *movies, int totalMovies) {
     int c;
     while ((c = getchar()) != '\n' && c != EOF);
 
-    clearScreen();
+    clear_screen();
 }
 
