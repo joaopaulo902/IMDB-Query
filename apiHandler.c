@@ -34,8 +34,6 @@ int get_info(char* url, char fileName[]) {
     chunk.memory = malloc(1);
     chunk.size = 0;
 
-
-
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);

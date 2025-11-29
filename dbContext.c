@@ -15,8 +15,11 @@ void make_titles_full_request() {
     char url[1024] = {IMDB_QUERY_URL};
     int i = 0;
     FileHeader fH = {0};
-
-    get_file_header(&fH, "titles.bin");
+    int rvalue = get_file_header(&fH, "titles.bin");
+    if (rvalue != 0) {
+        perror("error in get_file_header");
+        return;
+    }
     printf("%llu\n", fH.recordCount);
     do {
         printf("%d\n", i++);
@@ -33,7 +36,6 @@ void make_titles_full_request() {
             break;
         }
         for (int j = 0; j < pageCount; j++) {
-            t->titles[j].ratingId = j;
             record_title_on_binary(t->titles[j], fH, j, "titles.bin");
         }
 

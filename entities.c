@@ -12,7 +12,7 @@
 
 int get_page_title_item(TitlesResponse *r, char fileName[]) {
     int pageCount = 0;
-    FILE* jsonFilePointer = fopen("data.json", "r");
+    FILE* jsonFilePointer = fopen(fileName, "r");
     if (!jsonFilePointer) {
         return -1;
     }
@@ -24,6 +24,8 @@ int get_page_title_item(TitlesResponse *r, char fileName[]) {
         if (error) {
             printf("JSON Parse Error before: %s\n", error);
         }
+        free(buffer);
+        fclose(jsonFilePointer);
         return 0;
     }
     cJSON *totalCount = cJSON_GetObjectItem(root, "totalCount");
@@ -133,11 +135,12 @@ void record_title_on_binary(ParseTitle title, FileHeader fHeader, int i, char fi
             printf("NULL plot detected at index %d\n", i);
         }
         title_entry.id = i + fHeader.recordCount;
-        put_title(title_entry, title, &fHeader, fp);
-
+        _fseeki64(fp, (off_t) (sizeof(Titles) * title_entry.id) + (off_t) sizeof(FileHeader), SEEK_SET);
+        put_title(&title_entry, title, &fHeader, fp);
+        fclose(fp);
 }
 
-char* get_file_header(FileHeader* fH, char fileName[]) {
+int get_file_header(FileHeader* fH, char fileName[]) {
     FILE* binFp = fopen(fileName, "rb");
     if (!binFp)
         binFp = fopen(fileName, "wb+");
@@ -153,24 +156,18 @@ char* get_file_header(FileHeader* fH, char fileName[]) {
         fwrite(fH, sizeof(FileHeader), 1, binFp);
         fseek(binFp, sizeof(FileHeader), SEEK_SET);
     }
-    if (fread(fH, sizeof(FileHeader), 1, binFp) != 1) {
+    else if (fread(fH, sizeof(FileHeader), 1, binFp) != 1) {
             perror("Failed to read header");
             fclose(binFp);
-            return "-1";
+            return -1;
     }
     if (fH->ID != TITLE_FILE_ID) {
         printf("Invalid file format\n");
         fclose(binFp);
-        return "-1";
+        return -1;
     }
-    if (fH->nextPageToken[0] != '\0') {
-        fclose(binFp);
-        return fH->nextPageToken;
-    }
-    else {
-        fclose(binFp);
-        return "\0";
-    }
+    fclose(binFp);
+    return 0;
 
 
 }

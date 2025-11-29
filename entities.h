@@ -263,7 +263,7 @@ void record_title_on_binary(ParseTitle title, FileHeader fHeader, int i, char fi
 /**
  *
  */
-char* get_file_header(FileHeader *fH, char fileName[]);
+int get_file_header(FileHeader *fH, char fileName[]);
 
 
 
