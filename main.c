@@ -3,7 +3,7 @@
 #include "titleSearch.h"
 
 int main(void) {
-    //make_titles_full_request();
+    make_titles_full_request();
     //initialize_system();
 
     return 0;

@@ -4,7 +4,10 @@
 
 #include "titleSearch.h"
 #include <ctype.h>
+#include <stdlib.h>
 #include <string.h>
+
+PostingList dictionary[DICT_SIZE] = {0};
 
 char remove_accent(unsigned char c) {
     // UTF-8 lower accents
@@ -57,4 +60,97 @@ void normalize_title(char* input, char* output) {
         j--;
 
     output[j] = '\0';
+}
+
+void tokenize_and_index(char* normalized, int id) {
+
+    // Copy name to a modifiable buffer
+    char buffer[256];
+    strncpy(buffer, normalized, sizeof(buffer));
+    buffer[sizeof(buffer)-1] = '\0';
+
+    // Tokenize by spaces, ignoring stopwords
+    // Remove token by token until the end of the word
+    char* token = strtok(buffer, " ");
+    while (token != NULL) {
+        if (!is_stopword(token)) {
+            insert_token_into_dictionary(token, id);
+        }
+
+        token = strtok(NULL, " ");
+    }
+}
+
+unsigned int hash_token(char* s) {
+    unsigned int h = 2166136261u;
+    while (*s) {
+        h ^= (unsigned char)(*s++);
+        h *= 16777619u;
+    }
+    return h % DICT_SIZE;
+}
+
+void insert_token_into_dictionary(char* token, int id) {
+    unsigned int index = hash_token(token);
+
+    while (1) {
+
+        // If empty slot, insert new term
+        if (dictionary[index].term == NULL) {
+            dictionary[index].term = strdup(token);
+            dictionary[index].capacity = 4;
+            dictionary[index].count = 0;
+            dictionary[index].ids = malloc(4 * sizeof(int));
+
+            dictionary[index].ids[dictionary[index].count++] = id;
+            return;
+        }
+
+        // If term already exists, append ID
+        if (strcmp(dictionary[index].term, token) == 0) {
+
+            // Avoid duplicate IDs
+            if (dictionary[index].count == 0 || dictionary[index].ids[dictionary[index].count - 1] != id) {
+
+                // Expand (double) structure if needed
+                if (dictionary[index].count == dictionary[index].capacity) {
+                    dictionary[index].capacity *= 2;
+                    dictionary[index].ids = realloc(dictionary[index].ids,
+                                                    dictionary[index].capacity * sizeof(int));
+                }
+
+                dictionary[index].ids[dictionary[index].count++] = id;
+            }
+
+            return;
+        }
+
+        // Linear probing
+        index = (index + 1) % DICT_SIZE;
+    }
+}
+
+int is_stopword(char* token) {
+
+    const char* STOPWORDS[] = {
+        "a", "an", "the",
+        "of", "and", "or",
+        "to", "in", "on",
+        "for", "with",
+        "de", "da", "do", "das", "dos",
+        "o", "os", "as",
+        "um", "uma", "uns", "umas",
+        "la", "el", "los", "las",
+        "y", "e",
+        "por",
+        NULL
+    };
+
+    for (int i = 0; STOPWORDS[i] != NULL; i++) {
+        if (strcmp(token, STOPWORDS[i]) == 0) {
+            return 1;
+        }
+    }
+
+    return 0;
 }

@@ -6,6 +6,7 @@
 #include <curl/curl.h>
 #include <stdio.h>
 #include "entities.h"
+#include "titleSearch.h"
 
 void put_title(Titles* entry, ParseTitle dynamicTitle, FileHeader* f, FILE* fp) {
     //copy data into fixed size strings
@@ -28,10 +29,20 @@ void put_title(Titles* entry, ParseTitle dynamicTitle, FileHeader* f, FILE* fp) 
     entry->runtimeSeconds = dynamicTitle.runtimeSeconds;
     entry->rating.aggregateRating = dynamicTitle.rating.aggregateRating;
     entry->rating.voteCount = dynamicTitle.rating.voteCount;
+
+    add_title_name(dynamicTitle.originalTitle, entry->id);
+
     //write data into file
     if (fwrite(entry, sizeof(Titles), 1, fp) != 1) {
         perror("write error");
     }
+}
+
+void add_title_name(char* rawTitle, int id) {
+    char normalized[256];
+    normalize_title(rawTitle, normalized);
+
+    tokenize_and_index(normalized, id);
 }
 
 /**
