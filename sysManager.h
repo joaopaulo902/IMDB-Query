@@ -51,6 +51,7 @@ void print_menu_options();
  * @param totalMovies count of total movies in the list
  */
 void show_info_page(int totalMovies);
+void show_search_page();
 
 /**
  * Basic bubble sort implementation to order titles by year
@@ -58,5 +59,7 @@ void show_info_page(int totalMovies);
  * @param totalMovies count of total movies in the list
  */
 void order_by_year(Titles *titles, int totalMovies);
+
+void print_search_results(Titles* results, int count, char* term);
 
 #endif //SYSMANAGER_H

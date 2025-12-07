@@ -4,8 +4,10 @@
 #include <stdlib.h>
 #include <curl/curl.h>
 
+#include "binService.h"
 #include "dbContext.h"
 #include "IQuery.h"
+#include "titleSearch.h"
 
 void read_title() {
     FILE *ptFile;
@@ -78,6 +80,7 @@ void initialize_system() {
             case 's':
             case 'S':
                 // Show search page
+                show_search_page();
                 continue;
             case 'o':
             case 'O':
@@ -165,6 +168,71 @@ void show_info_page(int totalMovies) {
 
     clear_screen();
 }
+
+void show_search_page() {
+    char searchTerm[100];
+
+    clear_screen();
+    printf("==================================================================================\n");
+    printf("||  BUSCA DE TITULOS                                                            *\n");
+    printf("==================================================================================\n");
+    printf("Digite o termo de busca: ");
+    fgets(searchTerm, sizeof(searchTerm), stdin);
+
+    // Remover \n
+    size_t len = strlen(searchTerm);
+    if (len > 0 && searchTerm[len - 1] == '\n')
+        searchTerm[len - 1] = '\0';
+
+    int count;
+    int* ids = search_term(searchTerm, &count);
+
+    if (!ids || count == 0) {
+        printf("Nenhum título encontrado.\n");
+        printf("Pressione ENTER para voltar...");
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF);
+        clear_screen();
+        return;
+    }
+
+    Titles* results = malloc(count * sizeof(Titles));
+
+    for (int i = 0; i < count; i++) {
+        results[i] = get_title_by_id(ids[i]);
+    }
+
+    free(ids);
+
+    clear_screen();
+    print_search_results(results, count, searchTerm);
+    free(results);
+    clear_screen();
+}
+
+
+void print_search_results(Titles* results, int count, char* term) {
+    printf("==================================================================================\n");
+    printf("||  RESULTADOS DA BUSCA POR: %-50s *\n", term);
+    printf("==================================================================================\n");
+    printf("%-4s | %-50s | %-5s | %-4s | %-4s\n", "#", "Titulo", "Rating", "Ano", "Tipo");
+    printf("-----+----------------------------------------------------+--------+------+------\n");
+
+    for (int i = 0; i < count; i++) {
+        printf("%-4d | %-50s |  %4.1f  | %-4d | %-10s\n",
+               results[i].id,
+               results[i].primaryTitle,
+               results[i].rating.aggregateRating,
+               results[i].startYear,
+               results[i].type);
+    }
+
+    printf("==================================================================================\n");
+    printf("Pressione ENTER para retornar...\n");
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
 
 void order_by_year(Titles *titles, int totalMovies) {
     for (int i = 0; i < totalMovies - 1; i++) {
