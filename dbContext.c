@@ -11,7 +11,7 @@
 
 #include "titleSearch.h"
 
-#define MAX_DATA 50
+#define MAX_DATA 11000
 
 void make_titles_full_request() {
     char url[1024] = {IMDB_QUERY_URL};
