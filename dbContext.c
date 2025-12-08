@@ -1,15 +1,9 @@
-//
-// Created by joaop on 28/11/2025.
-//
-//abstraction of smaller methods
-
 #include "dbContext.h"
 #include "entities.h"
 #include "apiHandler.h"
 #include "binService.h"
 #include "filterGenre.h"
 #include <string.h>
-
 #include "bpTree.h"
 #include "titleSearch.h"
 
@@ -19,21 +13,24 @@ void make_titles_full_request() {
     char url[1024] = {IMDB_QUERY_URL};
     int i = 0;
     FileHeader fH = {0};
-    int rvalue = get_file_header(&fH, "titles.bin");
+    int rvalue = get_file_header(&fH, TITLES_BIN_PATH);
+
     if (rvalue != 0) {
         perror("error in get_file_header");
         return;
     }
+
     printf("%llu\n", fH.recordCount);
+
     do {
         printf("%d\n", i++);
-        TitlesResponse* t = malloc(sizeof(TitlesResponse));
+        TitlesResponse *t = malloc(sizeof(TitlesResponse));
 
-        if (get_info(url, "data.json") != 0) {
+        if (get_info(url, DATA_JSON_PATH) != 0) {
             printf("erro em get_info\n");
             break;
         }
-        int pageCount =  get_page_title_item(t, "data.json");
+        int pageCount = get_page_title_item(t, DATA_JSON_PATH);
         if (pageCount == -1) {
             perror("Failed to open data.json on reading");
             free_titles_response(t);
@@ -42,7 +39,7 @@ void make_titles_full_request() {
         BPTree *T = bpt_open(YEAR_INDEX_FILE);
         BPTree *R = bpt_open(RATING_INDEX_FILE);
         for (int j = 0; j < pageCount; j++) {
-            Title lastEntry = record_title_on_binary(t->titles[j], fH, j, "titles.bin");
+            Title lastEntry = record_title_on_binary(t->titles[j], fH, j, TITLES_BIN_PATH);
             bpt_insert(T, lastEntry.startYear, lastEntry.id, lastEntry.id);
             bpt_insert(R, lastEntry.rating.aggregateRating, lastEntry.id, lastEntry.id);
             insert_genre_index(t->titles[j], lastEntry);
@@ -61,28 +58,20 @@ void make_titles_full_request() {
             free_titles_response(t);
             break;
         }
-        update_file_header(&fH, "titles.bin");
+        update_file_header(&fH, TITLES_BIN_PATH);
 
         free_titles_response(t);
-    }while (fH.recordCount < MAX_DATA && fH.nextPageToken[0] != '\0');
+    } while (fH.recordCount < MAX_DATA && fH.nextPageToken[0] != '\0');
 
-    save_dictionary("vocabulary.bin", "postings.bin");
-}
-
-
-/*
- *streamlined logic for parsing awards from requests
- */
-void parse_awards() {
-
+    save_dictionary(VOCABULARY_BIN_PATH, POSTINGS_BIN_PATH);
 }
 
 int get_titles_count() {
     FileHeader fH = {0};
-    int rvalue = get_file_header(&fH, "titles.bin");
+    int rvalue = get_file_header(&fH, TITLES_BIN_PATH);
     if (rvalue != 0) {
         perror("error in get_file_header");
         return -1;
     }
-    return (int)fH.recordCount;
+    return (int) fH.recordCount;
 }

@@ -1,7 +1,3 @@
-//
-// Created by andri on 06/12/2025.
-//
-
 #include "titleSearch.h"
 #include <ctype.h>
 #include <stdlib.h>

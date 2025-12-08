@@ -296,7 +296,6 @@ void print_search_page_results(Title* results, int count, char* term, int curren
 }
 
 
-
 void order_by_year(Title *titles, int totalMovies) {
     for (int i = 0; i < totalMovies - 1; i++) {
         for (int j = 0; j < totalMovies - i - 1; j++) {

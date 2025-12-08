@@ -58,7 +58,23 @@ void show_search_page();
  */
 void order_by_year(Title *titles, int totalMovies);
 
+/**
+ * Print search results page
+ * @param results list of titles resulting from the search
+ * @param count count of total search results
+ * @param term search term used
+ * @param currentPage current page number to be displayed
+ * @param elapsedMs time taken to perform the search in milliseconds
+ */
 void print_search_page_results(Title* results, int count, char* term, int currentPage, double elapsedMs);
+
+/**
+ * Print search results header
+ * @param term search term used
+ * @param currentPage current page number to be displayed
+ * @param totalPages total number of pages
+ * @param elapsedMs time taken to perform the search in milliseconds
+ */
 void print_search_header(char* term, int currentPage, int totalPages, double elapsedMs);
 
 #endif //SYSMANAGER_H

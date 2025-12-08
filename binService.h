@@ -7,6 +7,10 @@
 #include "IQuery.h"
 #include <stdio.h>
 
+#define TITLES_BIN_PATH "titles.bin"
+#define VOCABULARY_BIN_PATH "vocabulary.bin"
+#define POSTINGS_BIN_PATH "postings.bin"
+
 /**
  *
  * @param entry fixed size type that recieves the data input to the archive
@@ -19,7 +23,7 @@
  *
  * @endcode
  */
-void put_title(Title* entry, ParseTitle dynamicTitle, FileHeader* f, FILE* fp);
+void put_title(Title *entry, ParseTitle dynamicTitle, FileHeader *f, FILE *fp);
 
 /**
  *
@@ -28,7 +32,7 @@ void put_title(Title* entry, ParseTitle dynamicTitle, FileHeader* f, FILE* fp);
  * @param f file Header
  * @param fp file pointer
  */
-void put_stand_alone_title(Title entry, ParseTitle dynamicTitle, FileHeader* f, FILE* fp);
+void put_stand_alone_title(Title entry, ParseTitle dynamicTitle, FileHeader *f, FILE *fp);
 
 /**
  *
@@ -37,7 +41,7 @@ void put_stand_alone_title(Title entry, ParseTitle dynamicTitle, FileHeader* f, 
  * @param fHeader
  * @param fp
  */
-void put_rating(Rating entry, ParseRating dynamicRating, FileHeader fHeader, FILE* fp);
+void put_rating(Rating entry, ParseRating dynamicRating, FileHeader fHeader, FILE *fp);
 
 /**
  *
@@ -52,8 +56,10 @@ void put_rating(Rating entry, ParseRating dynamicRating, FileHeader fHeader, FIL
  */
 Title get_title(Title entry, int searchMode);
 
-void update_file_header(const FileHeader* fH, char* title);
-void add_title_name(char* rawTitle, int id);
+void update_file_header(const FileHeader *fH, char *title);
+
+void add_title_name(char *rawTitle, int id);
+
 Title get_title_by_id(int id);
 
 #endif //IMDB_QUERY_BINSERVICE_H

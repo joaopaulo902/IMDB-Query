@@ -4,9 +4,9 @@
 
 #ifndef IMDB_QUERY_APIHANDLER_H
 #define IMDB_QUERY_APIHANDLER_H
-#include <stdio.h>
 
 #define IMDB_QUERY_URL "https://api.imdbapi.dev/titles"
+#define DATA_JSON_PATH "data.json"
 
 /**
  * @param url

@@ -1,9 +1,5 @@
-//
-// Created by joaop on 18/11/2025.
-//
 #include <stddef.h>
 #include "util.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
