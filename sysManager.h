@@ -15,21 +15,15 @@
 void initialize_system();
 
 /**
- * Clear console screen and hide cursor
- * **/
-void clear_screen();
+ * Show system information page
+ * @param totalMovies count of total movies in the list
+ */
+void show_info_page(int totalMovies);
 
 /**
- * Print header for titles list
- * @param currentPage current page number
- * @param totalPages total number of pages
+ * Show search page and handle user input
  */
-void print_title_list_header(int currentPage, int totalPages);
-
-/**
- * Print system information header
- */
-void print_info_header();
+void show_search_page();
 
 /**
  * Print paginated list of titles
@@ -40,25 +34,18 @@ void print_info_header();
 void print_titles_list(Title *page, int totalMovies, int currentPage);
 
 /**
- * Print menu options
+ * Print search results page
+ * @param results list of titles resulting from the search
+ * @param count count of total search results
+ * @param term search term used
+ * @param currentPage current page number to be displayed
+ * @param elapsedMs time taken to perform the search in milliseconds
  */
-void print_menu_options();
-
-/**
- * Show system information page
- * @param totalMovies count of total movies in the list
- */
-void show_info_page(int totalMovies);
-void show_search_page();
-
-/**
- * Basic bubble sort implementation to order titles by year
- * @param titles list of titles to be ordered
- * @param totalMovies count of total movies in the list
- */
-void order_by_year(Title *titles, int totalMovies);
-
 void print_search_page_results(Title* results, int count, char* term, int currentPage, double elapsedMs);
-void print_search_header(char* term, int currentPage, int totalPages, double elapsedMs);
+
+/**
+ * Show genre filter page and handle user input
+ */
+void show_genre_filter_page();
 
 #endif //SYSMANAGER_H

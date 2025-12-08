@@ -1,7 +1,3 @@
-//
-// Created by joaop on 25/11/2025.
-//
-
 #include "entities.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,11 +9,13 @@
 int get_page_title_item(TitlesResponse *r, char fileName[]) {
     int pageCount = 0;
     FILE* jsonFilePointer = fopen(fileName, "r");
+
     if (!jsonFilePointer) {
         return -1;
     }
+
     char *buffer  = read_entire_file(jsonFilePointer);
-    //-----parse buffer--------------------
+
     cJSON *root = cJSON_Parse(buffer);
     if (root == NULL) {
         const char *error = cJSON_GetErrorPtr();
@@ -28,6 +26,7 @@ int get_page_title_item(TitlesResponse *r, char fileName[]) {
         fclose(jsonFilePointer);
         return 0;
     }
+
     cJSON *totalCount = cJSON_GetObjectItem(root, "totalCount");
     r->totalCount = totalCount ? totalCount->valueint : 0; //analyse cJSON* totalCount and write valueInt or 0
     cJSON *nextPageToken = cJSON_GetObjectItem(root, "nextPageToken");
@@ -71,22 +70,12 @@ ParseTitle parse_title(const cJSON *item) {
     cJSON *runtime = cJSON_GetObjectItem(item, "runtimeSeconds");
     if (cJSON_IsNumber(runtime)) t.runtimeSeconds = runtime->valueint;
 
-    // ---- primaryImage ---- wont be used
-    /*    cJSON *image = cJSON_GetObjectItem(item, "primaryImage");
-        if (cJSON_IsObject(image)) {
-            t.image.href = json_strdup(cJSON_GetObjectItem(image, "url"));
-            t.image.width = cJSON_GetObjectItem(image, "width")->valueint;
-            t.image.height = cJSON_GetObjectItem(image, "height")->valueint;
-        }
-    */
-    // ---- rating ----
     cJSON *rating = cJSON_GetObjectItem(item, "rating");
     if (cJSON_IsObject(rating)) {
         t.rating.aggregateRating = cJSON_GetObjectItem(rating, "aggregateRating")->valuedouble;
         t.rating.voteCount = cJSON_GetObjectItem(rating, "voteCount")->valueint;
     }
 
-    // ---- genres array ----
     cJSON *genres = cJSON_GetObjectItem(item, "genres");
     if (cJSON_IsArray(genres)) {
         t.genresCount = cJSON_GetArraySize(genres);
@@ -99,7 +88,8 @@ ParseTitle parse_title(const cJSON *item) {
 
     return t;
 }
-static char* json_strdup(const cJSON* obj) {
+
+char* json_strdup(const cJSON* obj) {
     return (obj && cJSON_IsString(obj)) ? strdup(obj->valuestring) : NULL;
 }
 
@@ -123,11 +113,6 @@ void free_titles_response(TitlesResponse *r) {
     free(r);
 }
 
-
-
-
-
-
 Title record_title_on_binary(ParseTitle title, FileHeader fHeader, int indexInPage, char fileName[]) {
     FILE* fp = fopen(fileName, "rb+");
     Title entry = {0};
@@ -135,8 +120,6 @@ Title record_title_on_binary(ParseTitle title, FileHeader fHeader, int indexInPa
         perror("Erro abrindo titles.bin");
         return entry;
     }
-
-
 
     // Ler header atual
     fseek(fp, 0, SEEK_SET);
@@ -152,13 +135,11 @@ Title record_title_on_binary(ParseTitle title, FileHeader fHeader, int indexInPa
     _fseeki64(fp, offset - sizeof(Title), SEEK_SET);
 
     // Gravar título no arquivo
-    put_title(&entry, title, &fHeader, fp);
+    put_title(&entry, title, fp);
 
     fclose(fp);
     return entry;
 }
-
-
 
 int get_file_header(FileHeader* fH, char fileName[]) {
     FILE* binFp = fopen(fileName, "rb");
@@ -188,6 +169,4 @@ int get_file_header(FileHeader* fH, char fileName[]) {
     }
     fclose(binFp);
     return 0;
-
-
 }

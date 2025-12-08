@@ -3,28 +3,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <curl/curl.h>
-
+#include <windows.h>
 #include "binService.h"
+#include "bpTree.h"
 #include "dbContext.h"
+#include "filterGenre.h"
 #include "IQuery.h"
 #include "titleSearch.h"
+#include "view.h"
 
-void read_title() {
-    FILE *ptFile;
-    ptFile = fopen("title.txt", "r");
-    if (ptFile != NULL) {
-        while (!feof(ptFile)) {
-            char letter = fgetc(ptFile);
-            printf("%c", letter);
-        }
-        printf("\n");
-        fclose(ptFile);
-    } else {
-        printf("Erro abrindo imagem inicial.\n");
-    }
-}
+BPTree *TREE_CTX = NULL;
 
 void initialize_system() {
+    TREE_CTX = bpt_open(YEAR_INDEX_FILE);
 
     Title titles[PAGE_SIZE];
 
@@ -84,14 +75,26 @@ void initialize_system() {
                 continue;
             case 'o':
             case 'O':
-                order_by_year(titles, totalMovies);
+                //order_by_year(titles, totalMovies);
                 // Show order options on menu
                 continue;
+            case 'g':
+            case 'G':
+                show_genre_filter_page();
+                continue;
+
+            case 'f':
+            case 'F':
+                //show_filter_page();
+                continue;
+
             default:
                 printf("Comando desconhecido. Use n, p, i ou q.\n");
                 Sleep(1000);
         }
     }
+
+    bpt_close(TREE_CTX);
 
     clear_screen();
     // Show cursor before exiting
@@ -99,48 +102,7 @@ void initialize_system() {
     printf("Encerrando...\n");
 }
 
-void clear_screen() {
-    // Hide cursor
-    printf("\033[?25l");
-    // Clear screen
-    printf("\033[2J");
-    // Move cursor to top-left
-    printf("\033[H");
-    // Show cursor
-    fflush(stdout);
-}
-
-void print_title_list_header(int currentPage, int totalPages) {
-    read_title();
-    printf("==================================================================================\n");
-    printf("||  LISTA DE FILMES                                            |  Pagina %d de %d *\n", currentPage + 1,
-           totalPages);
-    printf("==================================================================================\n");
-    printf("%-4s | %-50s | %-5s | %-4s | %-4s\n", "#", "Titulo", "Rating", "Ano", "Tipo");
-    printf("-----+----------------------------------------------------+--------+------+------\n");
-}
-
-void print_info_header() {
-    read_title();
-    printf("==================================================================================\n");
-    printf("||  INFORMACOES DO SISTEMA                                                       *\n");
-    printf("==================================================================================\n");
-}
-
-void print_search_header(char* term, int currentPage, int totalPages, double elapsedMs) {
-    clear_screen();
-    read_title();
-    printf("==================================================================================\n");
-    printf("||  Busca: %-41s Tempo: %.2f ms | Pag %d de %d * \n", term, elapsedMs, currentPage + 1, totalPages);
-    printf("==================================================================================\n");
-    printf("%-4s | %-50s | %-5s | %-4s | %-4s\n",
-           "#", "Titulo", "Rating", "Ano", "Tipo");
-    printf("-----+----------------------------------------------------+--------+------+------\n");
-}
-
-
 void print_titles_list(Title *page, int totalMovies, int currentPage) {
-
     query_titles_by_page(currentPage, page, totalMovies);
 
     int totalPages = (totalMovies + PAGE_SIZE - 1) / PAGE_SIZE;
@@ -151,21 +113,14 @@ void print_titles_list(Title *page, int totalMovies, int currentPage) {
         printf("%-4d | %-50s |  %4.1f  | %-4d | %-10s\n",
                (currentPage * PAGE_SIZE) + i + 1,
                page[i].primaryTitle,
-               page[i].rating.aggregateRating,
+               page[i].rating.aggregateRating / 100.0,
                page[i].startYear,
                page[i].type);
     }
 }
 
-void print_menu_options() {
-    printf("==================================================================================\n");
-    printf("[s] Buscar registro      |  [o] Ordenar por ano        |  [i] Info\n");
-    printf("[n] Proxima pagina       |  [p] Pagina anterior        |  [q] Sair\n");
-    printf("Comando: ");
-}
 
 void show_info_page(int totalMovies) {
-
     int totalPages = (totalMovies + PAGE_SIZE - 1) / PAGE_SIZE;
 
     clear_screen();
@@ -184,28 +139,24 @@ void show_info_page(int totalMovies) {
 void show_search_page() {
     char searchTerm[100];
 
-    clear_screen();
-    read_title();
-    printf("==================================================================================\n");
-    printf("|| Busca de titulos                                                             *\n");
-    printf("==================================================================================\n");
-    printf("Digite o termo de busca: ");
+    print_title_search_header();
+
     fgets(searchTerm, sizeof(searchTerm), stdin);
 
     size_t len = strlen(searchTerm);
     if (len > 0 && searchTerm[len - 1] == '\n')
         searchTerm[len - 1] = '\0';
 
-    // ---- MEDIR TEMPO DE BUSCA ----
-    clock_t begin = clock();
+    LARGE_INTEGER freq, begin, end;
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&begin);
 
     int count;
-    int* ids = search_term(searchTerm, &count);
+    int *ids = search_term(searchTerm, &count);
 
-    clock_t end = clock();
-    double elapsedMs = (double)(end - begin) * 1000.0 / CLOCKS_PER_SEC;
+    QueryPerformanceCounter(&end);
 
-    // --------------------------------
+    double elapsedMs = (double) (end.QuadPart - begin.QuadPart) * 1000.0 / freq.QuadPart;
 
     if (!ids || count == 0) {
         printf("Nenhum titulo encontrado.\n");
@@ -216,7 +167,7 @@ void show_search_page() {
         return;
     }
 
-    Title* results = malloc(count * sizeof(Title));
+    Title *results = malloc(count * sizeof(Title));
     for (int i = 0; i < count; i++)
         results[i] = get_title_by_id(ids[i]);
 
@@ -260,10 +211,7 @@ void show_search_page() {
     clear_screen();
 }
 
-
-
-
-void print_search_page_results(Title* results, int count, char* term, int currentPage, double elapsedMs) {
+void print_search_page_results(Title *results, int count, char *term, int currentPage, double elapsedMs) {
     int totalPages = (count + PAGE_SIZE - 1) / PAGE_SIZE;
 
     print_search_header(term, currentPage, totalPages, elapsedMs);
@@ -278,35 +226,116 @@ void print_search_page_results(Title* results, int count, char* term, int curren
         printf("%-4d | %-50s |  %4.1f  | %-4d | %-10s\n",
                results[i].id,
                results[i].primaryTitle,
-               results[i].rating.aggregateRating,
+               results[i].rating.aggregateRating / 100.0,
                results[i].startYear,
                results[i].type);
         printed++;
     }
 
-    // ---- COMPLETAR A TABELA COM LINHAS VAZIAS ----
     for (; printed < PAGE_SIZE; printed++) {
         printf("%-4s | %-50s | %-6s | %-4s | %-10s\n", "", "", "", "", "");
     }
-    // ------------------------------------------------
 
-    printf("==================================================================================\n");
-    printf("[n] Proxima pagina | [p] Pagina anterior | [q] Voltar ao menu\n");
-    printf("Comando: ");
+    print_results_menu();
 }
 
+void show_genre_filter_page() {
+    clear_screen();
+    print_genre_filter_header();
 
+    char buffer[32];
+    if (!fgets(buffer, sizeof(buffer), stdin)) return;
+    if (buffer[0] == 'q' || buffer[0] == 'Q') return;
 
-void order_by_year(Title *titles, int totalMovies) {
-    for (int i = 0; i < totalMovies - 1; i++) {
-        for (int j = 0; j < totalMovies - i - 1; j++) {
-            if (titles[j].startYear > titles[j + 1].startYear) {
-                Title temp = titles[j];
-                titles[j] = titles[j + 1];
-                titles[j + 1] = temp;
-            }
+    int choice = atoi(buffer);
+    if (choice < 1 || choice > GENRE_COUNT) {
+        printf("Opção inválida!\n");
+        Sleep(800);
+        clear_screen();
+        return;
+    }
+
+    const char *genre = GENRE_LIST[choice - 1];
+
+    LARGE_INTEGER freq, begin, end;
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&begin);
+
+    Title *results = NULL;
+    int count = filter_genre_raw(genre, &results);
+
+    QueryPerformanceCounter(&end);
+
+    double elapsedMs =
+        (double)(end.QuadPart - begin.QuadPart) * 1000.0 / freq.QuadPart;
+
+    if (count == 0 || results == NULL) {
+        printf("Nenhum registro encontrado para %s.\n", genre);
+        printf("Pressione ENTER para voltar...");
+        getchar();
+        clear_screen();
+        return;
+    }
+
+    int currentPage = 0;
+    char cmdBuff[16];
+
+    while (1) {
+        clear_screen();
+        read_title();
+
+        int totalPages = (count + PAGE_SIZE - 1) / PAGE_SIZE;
+        print_genre_results_header(genre, currentPage, totalPages, elapsedMs);
+
+        int start = currentPage * PAGE_SIZE;
+        int end = start + PAGE_SIZE;
+        if (end > count) end = count;
+
+        int printed = 0;
+        for (int i = start; i < end; i++) {
+            printf("%-4d | %-50s | %4.1f | %-4d | %-10s\n",
+                   results[i].id,
+                   results[i].primaryTitle,
+                   results[i].rating.aggregateRating / 100.0,
+                   results[i].startYear,
+                   results[i].type);
+            printed++;
+        }
+
+        for (; printed < PAGE_SIZE; printed++)
+            printf("%-4s | %-50s | %-6s | %-4s | %-10s\n",
+                   "", "", "", "", "");
+
+        print_results_menu();
+
+        if (!fgets(cmdBuff, sizeof(cmdBuff), stdin)) break;
+
+        switch (cmdBuff[0]) {
+            case 'q':
+            case 'Q':
+                free(results);
+                clear_screen();
+                return;
+
+            case 'n':
+            case 'N':
+                if (currentPage + 1 < totalPages)
+                    currentPage++;
+                break;
+
+            case 'p':
+            case 'P':
+                if (currentPage > 0)
+                    currentPage--;
+                break;
+
+            default:
+                printf("Comando inválido.\n");
+                Sleep(800);
         }
     }
-}
 
+    free(results);
+    clear_screen();
+}
 

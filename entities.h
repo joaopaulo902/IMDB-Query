@@ -1,26 +1,25 @@
-//
-// Created by joaop on 25/11/2025.
-//
-/*
- *contains types used by local storage
- */
 #ifndef IMDB_QUERY_ENTITIES_H
 #define IMDB_QUERY_ENTITIES_H
 
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <time.h>
 #include <cjson/cJSON.h>
 
 #define TITLE_FILE_ID 0x4e49414d
 #define STATS_FILE_ID 0x54415453
 
-
+/**
+ * Struct for storing a @code Rating's@endcode info
+ * @code
+    double aggregateRating;
+    int voteCount;
+ * @endcode
+ */
 typedef struct {
     double aggregateRating;
     int voteCount;
-}ParseRating;
+} ParseRating;
 
 
 /**
@@ -68,19 +67,22 @@ typedef struct {
     ParseTitle *titles;
     long int pageCount;
     long int totalCount;
-    char* token;
-}TitlesResponse;
+    char *token;
+} TitlesResponse;
 
-
+/**
+ * struct that will go into the header of each binary file
+ */
 typedef struct {
-    uint64_t ID;        // File identifier
-    uint32_t version;      // Format version
-    int64_t recordCount;  // How many titles exist
+    uint64_t ID; // File identifier
+    uint32_t version; // Format version
+    int64_t recordCount; // How many titles exist
     time_t updatedAt;
     time_t createdAt;
 
     char nextPageToken[1024]; //what is the next page's token if processing is halted
 } FileHeader;
+
 /**
  * struct that will go into the seed genres.bin
  * this file's items point to each genre's listing files
@@ -110,7 +112,8 @@ typedef struct {
 } GenreTitle;
 
 /**
- *
+ * struct that will go into the ratings.bin
+ * this file's items point to each title's rating info
  */
 typedef struct {
     int64_t id;
@@ -158,7 +161,7 @@ typedef struct {
     int32_t id;
     char name[50]; //type name. eg: MOVIE, TV_SERIES...
     char typeFileName[50];
-}Type;
+} Type;
 
 /**
  * Contains the offset of a title's entry classified as the type it's under
@@ -169,9 +172,7 @@ typedef struct {
     int32_t titleId;
 } TypeTitle;
 
-/**
- *
- */
+/** Defines an episode struct */
 typedef struct {
     uint64_t id;
     char title[100];
@@ -232,7 +233,7 @@ int get_page_title_item(TitlesResponse *r, char fileName[]);
  *
  * if string object is a string and not NULL, returns the string object
  */
-static char* json_strdup(const cJSON* obj);
+char *json_strdup(const cJSON *obj);
 
 
 /**
@@ -261,9 +262,12 @@ Title record_title_on_binary(ParseTitle title, FileHeader fHeader, int i, char f
 
 /**
  *
+ * @param fH pointer to file header struct that will be filled
+ * @param fileName name of the binary file to read the header from
+ * @return 0 - if ok \n
+ * @return -1 - if error has occurred \n\n
+ * reads the file header from the desired binary file into the provided struct pointer
  */
 int get_file_header(FileHeader *fH, char fileName[]);
-
-
 
 #endif //IMDB_QUERY_ENTITIES_H
